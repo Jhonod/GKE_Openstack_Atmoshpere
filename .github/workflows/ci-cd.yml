@@ -62,11 +62,28 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
+      - name: Ensure GKE cluster exists
+        run: |
+          if ! gcloud container clusters describe ${CLUSTER_NAME} --zone ${ZONE} --project ${{ secrets.GCP_PROJECT_ID }} >/dev/null 2>&1; then
+            echo "[INFO] Cluster ${CLUSTER_NAME} belum ada. Membuat..."
+            gcloud container clusters create ${CLUSTER_NAME} \
+              --zone ${ZONE} \
+              --project ${{ secrets.GCP_PROJECT_ID }} \
+              --num-nodes 1 \
+              --machine-type e2-standar-4 \
+              --release-channel regular
+          else
+            echo "[INFO] Cluster ${CLUSTER_NAME} sudah ada."
+          fi
+
       - name: Get GKE credentials
         run: |
-          gcloud container clusters get-credentials ${CLUSTER_NAME} --zone ${ZONE} --project ${{ secrets.GCP_PROJECT_ID }}
+          gcloud container clusters get-credentials ${CLUSTER_NAME} \
+            --zone ${ZONE} \
+            --project ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Deploy Atmosphere manifests
         run: |
           kubectl apply -f k8s/atmosphere/deployment.yaml
           kubectl apply -f k8s/atmosphere/service.yaml
+

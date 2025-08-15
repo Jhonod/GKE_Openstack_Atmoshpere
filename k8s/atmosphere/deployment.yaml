@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atmosphere
+  namespace: openstack
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: atmosphere
+  template:
+    metadata:
+      labels:
+        app: atmosphere
+    spec:
+      containers:
+        - name: atmosphere
+          image: asia-southeast2-docker.pkg.dev/PROJECT_ID/openstack-images/atmosphere:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              value: "mysql://atmo:password@mariadb.openstack.svc.cluster.local:3306/atmosphere"
+            - name: KEYSTONE_URL
+              value: "http://keystone.openstack.svc.cluster.local:5000"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"

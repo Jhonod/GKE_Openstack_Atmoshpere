@@ -1,0 +1,53 @@
+name: CI/CD Build & Deploy Atmosphere
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  GCP_REGION: asia-southeast2
+  ARTIFACT_REPO: openstack-images
+  CLUSTER_NAME: gke-openstack
+  ZONE: asia-southeast2-a
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev -q
+
+      - name: Build Atmosphere image
+        run: |
+          docker build -t ${GCP_REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${ARTIFACT_REPO}/atmosphere:latest ./k8s/atmosphere
+          docker push ${GCP_REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${ARTIFACT_REPO}/atmosphere:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT }}
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${CLUSTER_NAME} --zone ${ZONE} --project ${{ secrets.GCP_PROJECT }}
+
+      - name: Deploy Atmosphere manifests
+        run: |
+          kubectl apply -f k8s/atmosphere/deployment.yaml
+          kubectl apply -f k8s/atmosphere/service.yaml

@@ -70,7 +70,7 @@ jobs:
               --zone ${ZONE} \
               --project ${{ secrets.GCP_PROJECT_ID }} \
               --num-nodes 1 \
-              --machine-type e2-standar-4 \
+              --machine-type e2-standard-4 \
               --release-channel regular
           else
             echo "[INFO] Cluster ${CLUSTER_NAME} sudah ada."

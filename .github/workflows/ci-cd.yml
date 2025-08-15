@@ -81,6 +81,11 @@ jobs:
           gcloud container clusters get-credentials ${CLUSTER_NAME} \
             --zone ${ZONE} \
             --project ${{ secrets.GCP_PROJECT_ID }}
+            
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 
       - name: Deploy Atmosphere manifests
         run: |

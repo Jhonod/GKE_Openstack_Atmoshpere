@@ -26,6 +26,17 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
+      - name: Membuat Artifact Registry
+        run: |
+          if ! gcloud artifacts repositories describe ${ARTIFACT_REPO} --location=${GCP_REGION} >/dev/null 2>&1; then
+            echo "[INFO] Repository ${ARTIFACT_REPO} belum ada. Membuat..."
+            gcloud artifacts repositories create ${ARTIFACT_REPO} \
+              --repository-format=docker \
+              --location=${GCP_REGION} \
+              --description="Docker images for Atmosphere"
+          else
+            echo "[INFO] Repository ${ARTIFACT_REPO} sudah ada."
+          fi
       - name: Configure Docker for Artifact Registry
         run: |
           gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev -q

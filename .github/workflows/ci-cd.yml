@@ -47,6 +47,7 @@ jobs:
           docker push ${GCP_REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${ARTIFACT_REPO}/atmosphere:latest
 
   deploy:
+    if: github.ref == 'refs/heads/main'   # <- hanya jalan kalau push ke branch main
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -64,35 +65,36 @@ jobs:
 
       - name: Ensure GKE cluster exists
         run: |
-          if ! gcloud container clusters describe ${CLUSTER_NAME} --zone ${ZONE} --project ${{ secrets.GCP_PROJECT_ID }} >/dev/null 2>&1; then
-            echo "[INFO] Cluster ${CLUSTER_NAME} belum ada. Membuat..."
-            gcloud container clusters create ${CLUSTER_NAME} \
-              --zone ${ZONE} \
-              --project ${{ secrets.GCP_PROJECT_ID }} \
-              --num-nodes 1 \
-              --machine-type e2-standard-4 \
-              --release-channel regular
-          else
-            echo "[INFO] Cluster ${CLUSTER_NAME} sudah ada."
-          fi
+         if ! gcloud container clusters describe ${CLUSTER_NAME} --zone ${ZONE} --project ${{ secrets.GCP_PROJECT_ID }} >/dev/null 2>&1; then
+          echo "[INFO] Cluster ${CLUSTER_NAME} belum ada. Membuat..."
+          gcloud container clusters create ${CLUSTER_NAME} \
+            --zone ${ZONE} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --num-nodes 1 \
+            --machine-type e2-standard-4 \
+            --release-channel regular
+         else
+          echo "[INFO] Cluster ${CLUSTER_NAME} sudah ada."
+         fi
 
       - name: Get GKE credentials
         run: |
           gcloud container clusters get-credentials ${CLUSTER_NAME} \
-            --zone ${ZONE} \
-            --project ${{ secrets.GCP_PROJECT_ID }}
+          --zone ${ZONE} \
+          --project ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Install gke-gcloud-auth-plugin
         run: |
-          gcloud components install gke-gcloud-auth-plugin --quiet
-          export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+         gcloud components install gke-gcloud-auth-plugin --quiet
+         export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 
       - name: Create namespace if not exists
         run: |
-          kubectl get namespace openstack || kubectl create namespace openstack
+         kubectl get namespace openstack || kubectl create namespace openstack
 
       - name: Deploy Atmosphere manifests
         run: |
-          kubectl apply -f k8s/atmosphere/deployment.yaml
-          kubectl apply -f k8s/atmosphere/service.yaml
+         kubectl apply -f k8s/atmosphere/deployment.yaml
+         kubectl apply -f k8s/atmosphere/service.yaml
+
 
